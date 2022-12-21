@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mck8s-server
+  labels:
+    app: mck8s-server
+spec:
+  selector:
+    matchLabels:
+      app: mck8s-server
+  template:
+    metadata:
+      labels:
+        app: mck8s-server
+    spec:
+      containers:
+        - name: minecraft
+          image: itzg/minecraft-server:2022.10.0
+          env:
+            - name: EULA
+              value: "TRUE"
+          ports:
+            - name: minecraft
+              containerPort: 25565
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mck8s-server
+  annotations:
+    ingress.mck8s/hostname: "mc.abandontech.cloud"
+spec:
+  ports:
+    - port: 25565
+      name: minecraft
+  selector:
+    app: mck8s-server
