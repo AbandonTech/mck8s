@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/rs/zerolog/log"
 	"net"
+	"strings"
 )
 
 // TcpServer provides a callback handler for on connection
@@ -108,6 +109,10 @@ func (tcpServer *TcpServer) DeleteRoute(hostname string) {
 
 // GetRoute from the TcpServer provides the Service Ip within the Cluster
 func (tcpServer *TcpServer) GetRoute(addr string) (string, error) {
+
+	// Fix for DNS names that have a trialing dot
+	addr = strings.TrimSuffix(addr, ".")
+
 	value, ok := tcpServer.routes[addr]
 	if !ok {
 		return "", errors.New("address is not currently routed")
