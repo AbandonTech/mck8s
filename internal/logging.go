@@ -18,5 +18,22 @@ func ConfigureLogging() {
 		},
 	}
 
-	log.Debug().Msg("Logger configured")
+	// Default to InfoLevel, unless level is provided in environment variables
+	level := zerolog.InfoLevel
+	envLevel := os.Getenv("LOG_LEVEL")
+	if envLevel != "" {
+		var err error
+		level, err = zerolog.ParseLevel(envLevel)
+		if err != nil {
+			log.Fatal().
+				Str("LOG_LEVEL", envLevel).
+				Msg("Unable to parse log level string provided")
+		}
+	}
+
+	zerolog.SetGlobalLevel(level)
+
+	log.Debug().
+		Str("LogLevel", level.String()).
+		Msg("Logger configured")
 }

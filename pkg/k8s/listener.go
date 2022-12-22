@@ -2,7 +2,6 @@ package k8s
 
 import (
 	"context"
-	"github.com/bep/debounce"
 	"github.com/rs/zerolog/log"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -12,38 +11,39 @@ import (
 	"time"
 )
 
-// Payload contains information gathered via the Listener
-type Payload struct {
+// HostnameToService contains information gathered via the Listener
+type HostnameToService struct {
+	Delete   bool
 	Hostname string
 	Service  *v1.Service
 }
 
 // Listener uses the kubernetes API to listen to events,
-// forwarding them via the Listener.onPayload() function to be handled.
+// forwarding them via the Listener.onServiceDiscovered() function to be handled.
 type Listener struct {
-	client    kubernetes.Interface
-	onPayload func(*Payload)
+	client              kubernetes.Interface
+	onServiceDiscovered func([]HostnameToService)
 }
 
-// NewListener creates a new Listener, onPayload is a callback expected to handle each
+// NewListener creates a new Listener, onServiceDiscovered is a callback expected to handle each
 // event listened to.
-func NewListener(client kubernetes.Interface, onPayload func(*Payload)) *Listener {
+func NewListener(client kubernetes.Interface, onServiceDiscovered func([]HostnameToService)) *Listener {
 	return &Listener{
-		client:    client,
-		onPayload: onPayload,
+		client:              client,
+		onServiceDiscovered: onServiceDiscovered,
 	}
 }
 
 // Run a Listener in a Blocking fashion.
-// Any event listened to will be constructed into a Payload with the expectation
-// to be handled by the Listener.onPayload() method.
+// Any event listened to will be constructed into a HostnameToService with the expectation
+// to be handled by the Listener.onServiceDiscovered() method.
 func (listener *Listener) Run(ctx context.Context) error {
 	log.Debug().Msg("Starting kubernetes event listener")
 	factory := informers.NewSharedInformerFactory(listener.client, time.Minute)
 	serviceLister := factory.Core().V1().Services().Lister()
 
-	constructAndForwardPayload := func() {
-		payload := &Payload{}
+	constructAndForwardPayload := func(delete bool) {
+		hostnameToServices := make([]HostnameToService, 0)
 
 		services, err := serviceLister.List(labels.Everything())
 		if err != nil {
@@ -54,43 +54,39 @@ func (listener *Listener) Run(ctx context.Context) error {
 			return
 		}
 
-	forService:
 		for _, service := range services {
 			for annotationKey, hostname := range service.Annotations {
 				if annotationKey == "ingress.mck8s/hostname" {
-					payload.Hostname = hostname
-					payload.Service = service
+					hostnameToServices = append(
+						hostnameToServices,
+						HostnameToService{
+							Delete:   delete,
+							Hostname: hostname,
+							Service:  service,
+						})
 
-					log.Info().
+					log.Debug().
 						Str("Service", service.Name).
 						Str("Namespace", service.Namespace).
 						Str("Hostname", hostname).
 						Msg("Service found for ingress")
-
-					break forService
+					break
 				}
 			}
 		}
 
-		listener.onPayload(payload)
+		listener.onServiceDiscovered(hostnameToServices)
 	}
 
-	debounced := debounce.New(time.Second)
 	handler := cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-			log.Debug().
-				Msg("Received an add event")
-			debounced(constructAndForwardPayload)
+			constructAndForwardPayload(false)
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
-			log.Debug().
-				Msg("Received an updated event")
-			debounced(constructAndForwardPayload)
+			constructAndForwardPayload(false)
 		},
 		DeleteFunc: func(obj interface{}) {
-			log.Debug().
-				Msg("Received an delete event")
-			debounced(constructAndForwardPayload)
+			constructAndForwardPayload(true)
 		},
 	}
 

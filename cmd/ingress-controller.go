@@ -1,13 +1,16 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"context"
+	"encoding/binary"
+	"fmt"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
 	"minecraftk8s/internal"
 	"minecraftk8s/pkg/k8s"
-	"minecraftk8s/pkg/minecraft"
-	"minecraftk8s/pkg/tcp_server"
+	"minecraftk8s/pkg/tcp"
 	"net"
 )
 
@@ -15,32 +18,71 @@ func main() {
 	internal.ConfigureLogging()
 	log.Info().Msg("Starting mck8s-ingress-controller")
 
-	listener := k8s.NewListener(internal.GetKubernetesClient(), func(payload *k8s.Payload) {
-		log.Info().
-			Interface("payload", payload).
-			Msg("Payload received")
-	})
-
-	tcpServer := tcp_server.NewTcpServer(25565, func(conn net.Conn) {
-		remote := conn.RemoteAddr()
-
+	tcpServer := tcp.NewTcpServer(25565, func(server *tcp.TcpServer, clientConn net.Conn) {
+		remote := clientConn.RemoteAddr()
 		log.Info().
 			Str("Client", remote.String()).
 			Msg("Connection received")
 
-		reader := minecraft.NewProtocolReader(conn)
+		packet := make([]byte, 100)
+		clientConn.Read(packet)
 
-		packet, err := reader.Read()
+		packetReader := bufio.NewReader(bytes.NewReader(packet))
+		_, _ = binary.ReadUvarint(packetReader)
+		_, _ = binary.ReadUvarint(packetReader)
+		_, _ = binary.ReadUvarint(packetReader)
+		serverAddrSize, _ := binary.ReadUvarint(packetReader)
+
+		var serverAddressRaw = make([]byte, int(serverAddrSize))
+		packetReader.Read(serverAddressRaw)
+
+		route, err := server.GetRoute(string(serverAddressRaw))
 		if err != nil {
 			log.Error().
 				Err(err).
-				Msg("Couldn't read from TCP stream")
+				Msg("No route has been created for the provided address")
 			return
 		}
 
 		log.Info().
-			Interface("Packet", packet).
-			Msg("Packet received")
+			Str("ProvidedAddress", string(serverAddressRaw)).
+			Str("ResolvedAddress", route).
+			Msg("Resolved address")
+
+		serverConn, err := net.Dial(
+			"tcp",
+			fmt.Sprintf("%s:25565", route))
+
+		serverConn.Write(packet)
+
+		err = tcp.Proxy(clientConn, serverConn)
+		if err != nil {
+			log.Error().
+				Err(err).
+				Msg("Error while proxying client")
+			return
+		}
+
+		log.Info().
+			Msg("Finished proxying client")
+	})
+
+	listener := k8s.NewListener(internal.GetKubernetesClient(), func(serviceMappings []k8s.HostnameToService) {
+		log.Debug().
+			Interface("ServiceMappings", serviceMappings).
+			Msg("HostnameToService received")
+
+		for _, mapping := range serviceMappings {
+
+			if mapping.Delete {
+				tcpServer.DeleteRoute(mapping.Hostname)
+			} else {
+				tcpServer.AddRoute(
+					mapping.Hostname,
+					fmt.Sprintf("%s.%s.svc.cluster.local", mapping.Service.Name, mapping.Service.Namespace))
+			}
+
+		}
 	})
 
 	eg, ctx := errgroup.WithContext(context.Background())

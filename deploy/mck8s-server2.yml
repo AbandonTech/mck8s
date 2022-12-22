@@ -1,17 +1,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mck8s-server
+  name: mck8s-server2
   labels:
-    app: mck8s-server
+    app: mck8s-server2
 spec:
   selector:
     matchLabels:
-      app: mck8s-server
+      app: mck8s-server2
   template:
     metadata:
       labels:
-        app: mck8s-server
+        app: mck8s-server2
     spec:
       containers:
         - name: minecraft
@@ -26,12 +26,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: mck8s-server
+  name: mck8s-server2
   annotations:
-    ingress.mck8s/hostname: "localhost"
+    ingress.mck8s/hostname: "mc.example.com"
 spec:
   selector:
-    app: mck8s-server
+    app: mck8s-server2
   ports:
     - name: minecraft-port
       protocol: TCP

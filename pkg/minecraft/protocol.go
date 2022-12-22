@@ -10,12 +10,13 @@ import (
 
 // HandshakePacket contains all data in the first handshake packet
 type HandshakePacket struct {
-	PacketSize       uint64
-	PacketId         uint64
-	ProtocolVersion  uint64
-	ServerAddrLength uint64
-	ServerAdd        string
-	ServerPort       uint16
+	PacketSize       int64
+	PacketId         int64
+	ProtocolVersion  int64
+	ServerAddrLength int64
+	ServerAddr       []byte
+	ServerPort       []byte
+	NextState        uint64
 }
 
 // Packet is a sum type of all packets that can be received
@@ -40,16 +41,18 @@ func NewProtocolReader(conn net.Conn) ProtocolReader {
 // Read a Packet from the net.Conn Tcp stream
 func (protocolReader *ProtocolReader) Read() (*Packet, error) {
 
-	packetSize, _ := binary.ReadUvarint(protocolReader.reader)
-	packetId, _ := binary.ReadUvarint(protocolReader.reader)
+	packetSize, _ := binary.ReadVarint(protocolReader.reader)
+	packetId, _ := binary.ReadVarint(protocolReader.reader)
 
 	if packetId != 0 {
-		log.Info().Msg("Received non-handshake packet")
+		log.Info().
+			Int64("PacketId", packetId).
+			Msg("Received non-handshake packet")
 		return nil, errors.New("not a handshake packet")
 	}
 
-	protocolVer, _ := binary.ReadUvarint(protocolReader.reader)
-	serverAddrLength, _ := binary.ReadUvarint(protocolReader.reader)
+	protocolVer, _ := binary.ReadVarint(protocolReader.reader)
+	serverAddrLength, _ := binary.ReadVarint(protocolReader.reader)
 
 	var serverAddress = make([]byte, int(serverAddrLength))
 	protocolReader.reader.Read(serverAddress)
@@ -57,12 +60,15 @@ func (protocolReader *ProtocolReader) Read() (*Packet, error) {
 	var serverPort = make([]byte, 2)
 	protocolReader.reader.Read(serverPort)
 
+	nextState, _ := binary.ReadUvarint(protocolReader.reader)
+
 	return &HandshakePacket{
 		packetSize,
 		packetId,
 		protocolVer,
 		serverAddrLength,
-		string(serverAddress),
-		binary.BigEndian.Uint16(serverPort),
+		serverAddress,
+		serverPort,
+		nextState,
 	}, nil
 }
