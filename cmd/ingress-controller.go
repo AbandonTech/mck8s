@@ -35,11 +35,13 @@ func main() {
 
 		var serverAddressRaw = make([]byte, int(serverAddrSize))
 		packetReader.Read(serverAddressRaw)
+		serverAddress := string(serverAddressRaw)
 
-		route, err := server.GetRoute(string(serverAddressRaw))
+		route, err := server.GetRoute(serverAddress)
 		if err != nil {
 			log.Error().
 				Err(err).
+				Str("RequestedAddress", serverAddress).
 				Msg("No route has been created for the provided address")
 			return
 		}

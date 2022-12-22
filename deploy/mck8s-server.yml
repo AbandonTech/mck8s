@@ -28,7 +28,7 @@ kind: Service
 metadata:
   name: mck8s-server
   annotations:
-    ingress.mck8s/hostname: "mydomain.co.uk"
+    ingress.mck8s/hostname: "mc.abandontech.cloud"
 spec:
   selector:
     app: mck8s-server
