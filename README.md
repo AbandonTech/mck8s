@@ -1,8 +1,21 @@
-# Kubernetes Minecraft Ingress
+# mck8s
+
+## Api
+
+To view the current swagger specification, [go here](https://editor.swagger.io/?url=https://raw.githubusercontent.com/AbandonTech/mck8s/main/api/openapi.yaml)
+
+
+### Running locally
+
+```shell
+go run ./cmd/api/ --kubeconfig ~/.kube/config # Assuming your kubeconfig is in the default location.
+```
+
+## Kubernetes Minecraft Ingress
 
 Enable ingress routing for minecraft servers.
 
-## Running locally
+### Running locally
 
 Set up a Kubernetes cluster and ensure you are able to address services by their cluster IP. I recommend doing this
 using [minikube](https://minikube.sigs.k8s.io/docs/start/) for a local cluster and using their `minikube tunnel` to
@@ -10,7 +23,7 @@ enable addressing services via their cluster IP.
 
 Once a cluster has been created, and you can address the local services. Run 
 ```shell
-go run cmd/ingress-controller.go --kubeconfig ~/.kube/config # Assuming your kubeconfig is in the default location.
+go run ./cmd/ingress-controller/ --kubeconfig ~/.kube/config # Assuming your kubeconfig is in the default location.
 ```
 
 To create some Minecraft Server services, use the [provided example manifest](deploy/local/mck8s-server.yml). You can apply

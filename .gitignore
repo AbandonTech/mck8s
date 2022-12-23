@@ -7,5 +7,4 @@
 # Jetbrain IDE
 .idea/
 
-# Build binary
-ingress-controller
+./ingress-controller
