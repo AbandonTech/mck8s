@@ -4,28 +4,45 @@ import (
 	"github.com/rs/zerolog/log"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 // GetKubernetesConfig from the file system,
-// expects the runner to be a pod inside a K8s cluster with the appropriate service account.
-func GetKubernetesConfig() *rest.Config {
-	config, err := rest.InClusterConfig()
+// if kubeconfigPath is provided as an empty string, the host is expected to be inside a k8s pod.
+func GetKubernetesConfig(kubeconfigPath string) *rest.Config {
+	var config *rest.Config
+	var err error
+
+	if kubeconfigPath == "" { // No kubeconfigPath provided, assume in pod
+		log.Debug().
+			Msg("No kubeconfig kubeconfigPath provided, assuming running in pod")
+		config, err = rest.InClusterConfig()
+	} else {
+		log.Debug().
+			Str("Path", kubeconfigPath).
+			Msg("Kubeconfig kubeconfigPath provided")
+		config, err = clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+	}
+
 	if err != nil {
 		log.Fatal().
 			Err(err).
 			Msg("failed to get kubernetes configuration")
 	}
+
 	return config
 }
 
 // GetKubernetesClient creates a client using GetKubernetesConfig
-func GetKubernetesClient() *kubernetes.Clientset {
-	client, err := kubernetes.NewForConfig(GetKubernetesConfig())
+func GetKubernetesClient(config *rest.Config) *kubernetes.Clientset {
+	client, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		log.Fatal().
 			Err(err).
 			Msg("failed to get kubernetes client")
 	}
 
+	log.Debug().
+		Msg("Kubernetes client created")
 	return client
 }

@@ -8,7 +8,7 @@ import (
 )
 
 // ConfigureLogging using zerolog
-func ConfigureLogging() {
+func ConfigureLogging(verbose bool) {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 	runtime.ErrorHandlers = []func(error){
 		func(err error) {
@@ -18,17 +18,11 @@ func ConfigureLogging() {
 		},
 	}
 
-	// Default to InfoLevel, unless level is provided in environment variables
-	level := zerolog.InfoLevel
-	envLevel := os.Getenv("LOG_LEVEL")
-	if envLevel != "" {
-		var err error
-		level, err = zerolog.ParseLevel(envLevel)
-		if err != nil {
-			log.Fatal().
-				Str("LOG_LEVEL", envLevel).
-				Msg("Unable to parse log level string provided")
-		}
+	var level zerolog.Level
+	if verbose {
+		level = zerolog.DebugLevel
+	} else {
+		level = zerolog.InfoLevel
 	}
 
 	zerolog.SetGlobalLevel(level)

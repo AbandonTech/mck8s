@@ -11,8 +11,8 @@ import (
 	"time"
 )
 
-// HostnameToService contains information gathered via the Listener
-type HostnameToService struct {
+// ServiceMapping contains information gathered via the Listener
+type ServiceMapping struct {
 	Delete   bool
 	Hostname string
 	Service  *v1.Service
@@ -22,12 +22,12 @@ type HostnameToService struct {
 // forwarding them via the Listener.onServiceDiscovered() function to be handled.
 type Listener struct {
 	client              kubernetes.Interface
-	onServiceDiscovered func([]HostnameToService)
+	onServiceDiscovered func([]ServiceMapping)
 }
 
 // NewListener creates a new Listener, onServiceDiscovered is a callback expected to handle each
 // event listened to.
-func NewListener(client kubernetes.Interface, onServiceDiscovered func([]HostnameToService)) *Listener {
+func NewListener(client kubernetes.Interface, onServiceDiscovered func([]ServiceMapping)) *Listener {
 	return &Listener{
 		client:              client,
 		onServiceDiscovered: onServiceDiscovered,
@@ -35,7 +35,7 @@ func NewListener(client kubernetes.Interface, onServiceDiscovered func([]Hostnam
 }
 
 // Run a Listener in a Blocking fashion.
-// Any event listened to will be constructed into a HostnameToService with the expectation
+// Any event listened to will be constructed into a ServiceMapping with the expectation
 // to be handled by the Listener.onServiceDiscovered() method.
 func (listener *Listener) Run(ctx context.Context) error {
 	log.Debug().Msg("Starting kubernetes event listener")
@@ -43,14 +43,13 @@ func (listener *Listener) Run(ctx context.Context) error {
 	serviceLister := factory.Core().V1().Services().Lister()
 
 	constructAndForwardPayload := func(delete bool) {
-		hostnameToServices := make([]HostnameToService, 0)
+		hostnameToServices := make([]ServiceMapping, 0)
 
 		services, err := serviceLister.List(labels.Everything())
 		if err != nil {
 			log.Error().
 				Err(err).
 				Msg("failed to list services")
-
 			return
 		}
 
@@ -59,7 +58,7 @@ func (listener *Listener) Run(ctx context.Context) error {
 				if annotationKey == "ingress.mck8s/hostname" {
 					hostnameToServices = append(
 						hostnameToServices,
-						HostnameToService{
+						ServiceMapping{
 							Delete:   delete,
 							Hostname: hostname,
 							Service:  service,

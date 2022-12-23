@@ -52,11 +52,8 @@ spec:
       serviceAccountName: mck8s-ingress-controller
       containers:
         - name: mck8s-ingress-controller
-          image: "ghcr.io/abandontech/minecraftk8s:main"
+          image: ghcr.io/abandontech/minecraftk8s:main
           imagePullPolicy: Always
-          env:
-            - name: LOG_LEVEL
-              value: "debug"
           ports:
             - name: minecraft
               containerPort: 25565
