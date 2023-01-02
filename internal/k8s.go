@@ -2,7 +2,6 @@ package internal
 
 import (
 	"github.com/rs/zerolog/log"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -31,18 +30,4 @@ func GetKubernetesConfig(kubeconfigPath string) *rest.Config {
 	}
 
 	return config
-}
-
-// GetKubernetesClient creates a client using GetKubernetesConfig
-func GetKubernetesClient(config *rest.Config) *kubernetes.Clientset {
-	client, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		log.Fatal().
-			Err(err).
-			Msg("failed to get kubernetes client")
-	}
-
-	log.Debug().
-		Msg("kubernetes client created")
-	return client
 }
