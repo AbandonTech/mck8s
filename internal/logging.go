@@ -5,11 +5,12 @@ import (
 	"github.com/rs/zerolog/log"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"os"
+	"time"
 )
 
 // ConfigureLogging using zerolog
 func ConfigureLogging(verbose bool) {
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.Stamp})
 	runtime.ErrorHandlers = []func(error){
 		func(err error) {
 			log.Warn().
@@ -28,6 +29,11 @@ func ConfigureLogging(verbose bool) {
 	zerolog.SetGlobalLevel(level)
 
 	log.Debug().
-		Str("LogLevel", level.String()).
-		Msg("Logger configured")
+		Str("log-level", level.String()).
+		Msg("logger configured")
+}
+
+// DisableLogging from zerolog
+func DisableLogging() {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 }

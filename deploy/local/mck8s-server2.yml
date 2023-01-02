@@ -4,6 +4,7 @@ metadata:
   name: mck8s-server-2
   labels:
     app: mck8s-server-2
+    mck8s/managed: ""
 spec:
   selector:
     matchLabels:
@@ -28,12 +29,12 @@ kind: Service
 metadata:
   name: mck8s-server-2
   annotations:
-    ingress.mck8s/hostname: "127.0.0.1"
+    ingress.mck8s/hostname: "mc2.localhost"
 spec:
   selector:
     app: mck8s-server-2
   ports:
-    - name: minecraft-port
+    - name: minecraft
       protocol: TCP
       targetPort: minecraft
       port: 25565

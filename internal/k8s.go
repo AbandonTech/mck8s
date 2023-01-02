@@ -8,19 +8,19 @@ import (
 )
 
 // GetKubernetesConfig from the file system,
-// if kubeconfigPath is provided as an empty string, the host is expected to be inside a k8s pod.
+// if kubeconfigPath is provided as an empty string, the host is expected to be inside a pod.
 func GetKubernetesConfig(kubeconfigPath string) *rest.Config {
 	var config *rest.Config
 	var err error
 
 	if kubeconfigPath == "" { // No kubeconfigPath provided, assume in pod
 		log.Debug().
-			Msg("No kubeconfig kubeconfigPath provided, assuming running in pod")
+			Msg("no kubeconfig kubeconfigPath provided, assuming running in pod")
 		config, err = rest.InClusterConfig()
 	} else {
 		log.Debug().
-			Str("Path", kubeconfigPath).
-			Msg("Kubeconfig kubeconfigPath provided")
+			Str("path", kubeconfigPath).
+			Msg("kubeconfig kubeconfigPath provided")
 		config, err = clientcmd.BuildConfigFromFlags("", kubeconfigPath)
 	}
 
@@ -43,6 +43,6 @@ func GetKubernetesClient(config *rest.Config) *kubernetes.Clientset {
 	}
 
 	log.Debug().
-		Msg("Kubernetes client created")
+		Msg("kubernetes client created")
 	return client
 }

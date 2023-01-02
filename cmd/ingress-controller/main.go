@@ -123,7 +123,6 @@ func cliMain(ctx *cli.Context) error {
 				tcpServer.AddRoute(
 					mapping.Hostname,
 					mapping.Service.Spec.ClusterIP)
-				//fmt.Sprintf("%s.%s.svc.cluster.local", mapping.Service.Name, mapping.Service.Namespace))
 			}
 
 		}

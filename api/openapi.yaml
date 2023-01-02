@@ -29,39 +29,13 @@ paths:
                 items:
                   $ref: '#/components/schemas/Server'
 
-
-  /server/{server_uuid}:
-    parameters:
-      - name: server_uuid
-        in: path
-        required: true
-        schema:
-          type: string
-
-    get:
-      summary: Information about server deployment
-      tags:
-        - Server
-      responses:
-        200:
-          description: Information about server
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Server'
-        400:
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorDetail'
-        404:
-          description: Server not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorDetail'
+  /server:
     post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Server'
       summary: Create a new server deployment
       tags:
         - Server
@@ -85,13 +59,21 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorDetail'
 
-    put:
-      summary: Update a server deployment
+  /server/{server_uuid}:
+    parameters:
+      - name: server_uuid
+        in: path
+        required: true
+        schema:
+          type: string
+
+    get:
+      summary: Information about server deployment
       tags:
         - Server
       responses:
         200:
-          description: Updated server deployment
+          description: Information about server
           content:
             application/json:
               schema:
@@ -132,7 +114,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorDetail'
-
 
 components:
   schemas:
