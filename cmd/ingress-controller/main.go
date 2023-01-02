@@ -9,6 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/sync/errgroup"
+	"k8s.io/client-go/kubernetes"
 	"minecraftk8s/internal"
 	"minecraftk8s/pkg/k8s"
 	"minecraftk8s/pkg/tcp"
@@ -113,7 +114,13 @@ func cliMain(ctx *cli.Context) error {
 			Msg("Finished proxying client")
 	})
 
-	k8sClient := internal.GetKubernetesClient(internal.GetKubernetesConfig(ctx.Path("kubeconfig")))
+	k8sClient, err := kubernetes.NewForConfig(internal.GetKubernetesConfig(ctx.Path("kubeconfig")))
+	if err != nil {
+		log.Fatal().
+			Err(err).
+			Msg("couldn't create kubernetes client")
+	}
+
 	listener := k8s.NewListener(k8sClient, func(serviceMappings []k8s.ServiceMapping) {
 		for _, mapping := range serviceMappings {
 
@@ -123,7 +130,6 @@ func cliMain(ctx *cli.Context) error {
 				tcpServer.AddRoute(
 					mapping.Hostname,
 					mapping.Service.Spec.ClusterIP)
-				//fmt.Sprintf("%s.%s.svc.cluster.local", mapping.Service.Name, mapping.Service.Namespace))
 			}
 
 		}
